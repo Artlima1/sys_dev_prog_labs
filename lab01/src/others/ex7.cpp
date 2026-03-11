@@ -5,44 +5,56 @@
 
 typedef struct {
     int N;
-    int curr_h;
-} thread_tree_t;
+    int h;
+    unsigned long path[];
+} thread_tree_info_t;
 
 void * leaf_thread(void * arg) {
-    auto * data = (thread_tree_t *) arg;
-    if (data->curr_h == data->N) {
-        printf("End\n");
+    const auto * parent_data = (thread_tree_info_t *) arg;
+
+    const int curr_h = parent_data->h+1;
+    auto * node_data = (thread_tree_info_t *) malloc(sizeof(thread_tree_info_t) + (curr_h+1)*sizeof(unsigned long));
+    node_data->N = parent_data->N;
+    node_data->h = curr_h;
+    for (int i=0; i<=parent_data->h; i++) {
+        node_data->path[i] = parent_data->path[i];
+    }
+    node_data->path[curr_h] = pthread_self();
+
+    if (node_data->h == node_data->N) {
+        for (int i=0; i <= curr_h; i++) {
+            printf("%lu ",node_data->path[i]);
+        }
+        printf("\n");
     }
     else {
-        auto new_arg = new thread_tree_t;
-        * new_arg = * data;
-        new_arg->curr_h++;
         pthread_t thread[2];
-        pthread_create(&thread[0], NULL, leaf_thread, new_arg);
-        pthread_create(&thread[1], NULL, leaf_thread, new_arg);
-
-        pthread_join(thread[0], NULL);
-        pthread_join(thread[1], NULL);
+        pthread_create(&thread[0], nullptr, leaf_thread, node_data);
+        pthread_create(&thread[1], nullptr, leaf_thread, node_data);
+        pthread_join(thread[0], nullptr);
+        pthread_join(thread[1], nullptr);
     }
+    free(node_data);
     return nullptr;
 }
 
 int main(int argc, char * argv[]) {
     const int N =  std::stoi(argv[1]);
     pthread_t thread[2];
-    pthread_t id = pthread_self();
 
-    auto * arg_t = new thread_tree_t;
-    arg_t->N = N;
-    arg_t->curr_h = 0;
+    int curr_h = 0;
+    auto * node_data = (thread_tree_info_t *) malloc(sizeof(thread_tree_info_t) + (curr_h+1)*sizeof(unsigned long));
+    node_data->N = N;
+    node_data->h = curr_h;
+    node_data->path[curr_h] = pthread_self();;
 
-    pthread_create(&thread[0], NULL, leaf_thread, arg_t);
-    pthread_create(&thread[1], NULL, leaf_thread, arg_t);
+    pthread_create(&thread[0], nullptr, leaf_thread, node_data);
+    pthread_create(&thread[1], nullptr, leaf_thread, node_data);
 
-    pthread_join(thread[0], NULL);
-    pthread_join(thread[1], NULL);
+    pthread_join(thread[0], nullptr);
+    pthread_join(thread[1], nullptr);
 
-    free(arg_t);
+    free(node_data);
     printf("Main Thread Finished");
 
     return 0;
