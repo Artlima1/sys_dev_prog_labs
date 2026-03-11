@@ -1,3 +1,4 @@
+#include <cstring>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -14,11 +15,8 @@ void * leaf_thread(void * arg) {
 
     const int curr_h = parent_data->h+1;
     auto * node_data = (thread_tree_info_t *) malloc(sizeof(thread_tree_info_t) + (curr_h+1)*sizeof(unsigned long));
-    node_data->N = parent_data->N;
+    memcpy(node_data, parent_data, sizeof(thread_tree_info_t) + curr_h*sizeof(unsigned long));
     node_data->h = curr_h;
-    for (int i=0; i<=parent_data->h; i++) {
-        node_data->path[i] = parent_data->path[i];
-    }
     node_data->path[curr_h] = pthread_self();
 
     if (node_data->h == node_data->N) {
