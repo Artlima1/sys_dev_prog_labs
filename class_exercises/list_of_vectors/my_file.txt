@@ -1,0 +1,6 @@
+lara 2 28 27
+alfonso 3 19 23 26
+Maria 1 15
+clara 3 30 27 28
+Raffaela 2 24 25
+alfonso 2 12 19
