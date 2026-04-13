@@ -10,3 +10,8 @@ add_executable(Ex1
         Ex1/MyFIFO.h
         Ex1/Ex1.cpp
 )
+add_executable(Ex2 Ex2/Ex2.cpp)
+add_executable(Ex4 Ex4/Ex4.cpp)
+add_executable(Ex5 Ex5/Ex5.cpp
+        Ex5/SocialNetwork.cpp
+        Ex5/SocialNetwork.h)
