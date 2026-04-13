@@ -1,0 +1,54 @@
+01. What is dynamic memory allocation in C++?
+------------------------------------------------------------------------------------
+02. Explain the difference between stack memory and heap memory.
+------------------------------------------------------------------------------------
+03. What is the new operator in C++, and how does it relate to dynamic
+    memory allocation?
+------------------------------------------------------------------------------------
+04. What is the purpose of the delete operator in C++?
+------------------------------------------------------------------------------------
+05. What are memory leaks, and how can dynamic memory allocation
+    contribute to them?
+
+    Memory leaks happen when all references to dynamically allocated memory are lost without properly
+    freeing it, leading to its persistence in the system even after program end.
+------------------------------------------------------------------------------------
+06. What are smart pointers in C++, and why are they used?
+
+    Smart pointers are structures developed in CPP to tie the lifespan of dynamically allocated memory
+    to its references and automatically protect from memory leaks.
+------------------------------------------------------------------------------------
+07. Describe the differences between std::unique_ptr, std::shared_ptr,
+    and std::weak_ptr.
+
+    Unique Ptr only allows one unique reference to a allocated structure. When the pointer goes out
+    of scope, the pointed memory is also freed
+
+    Shared pointer is a structure that counts number of active references to an allocated memory. The
+    memory is automatically freed when there are no more references to it
+
+    Weak pointer are transient pointers that can point to a shared memory but do not increase their
+    reference count. Every time they are used, their validity must be checked, for the memory
+    they point to might have already been freed.
+
+
+------------------------------------------------------------------------------------
+08. How do smart pointers help prevent memory leaks and other
+    memory-related issues?
+------------------------------------------------------------------------------------
+09. What is the role of the destructor in smart pointers?
+
+    If necessary, deallocate the memory to which the pointers point
+------------------------------------------------------------------------------------
+10. Explain the concept of ownership semantics in the context of smart
+    pointers.
+------------------------------------------------------------------------------------
+11. Discuss the potential pitfalls of using raw pointers in C++ and
+    how smart pointers address these issues.
+------------------------------------------------------------------------------------
+12. Discuss the potential overhead associated with using smart
+    pointers compared to raw pointers and strategies for minimizing it.
+
+    When memory is allocated using smart pointers, it also needs to allocate memory for its
+    management structures. Besides, when manipulating it, there are the extra operations
+    related to its management.
