@@ -30,6 +30,8 @@ struct file_proc_task_data_t {
 };
 
 void proc_file(file_proc_task_data_t & data);
+extern void read_file_to_set(std::multiset<int> * out, const string &file_name);
+extern void write_set_to_file(std::multiset<int> * data, const string &file_name);
 
 int main(int argc, char *argv[]) {
     std::vector<string> files;
@@ -64,13 +66,11 @@ int main(int argc, char *argv[]) {
             finished_q.pop();
         }
         all_elements.merge(*threads_data[finished_index].elements);
+        delete threads_data[finished_index].elements;
         finished ++;
     }
 
-    for (auto e:all_elements) {
-        std::cout << e << "  ";
-    }
-    std::cout << std::endl;
+    write_set_to_file(&all_elements, "out.bin");
 
     for (auto &t: threads) {
         t.join();
@@ -83,24 +83,9 @@ int main(int argc, char *argv[]) {
 
 
 void proc_file(file_proc_task_data_t & data) {
-    const string file_path = "../ex1/files/" + data.file_name;
-    std::ifstream input_fs(file_path);
+    data.elements = new std::multiset<int>;
 
-    if (!input_fs.is_open()) {
-        std::cerr << "Error: opening files" << std::endl;
-    }
-
-    int n_elements, element;
-
-    input_fs >> n_elements;
-
-    data.elements = new std::multiset<int>[n_elements];
-
-    for (int i = 0; i < n_elements; i++) {
-        input_fs >> element;
-        data.elements->insert(element);
-    }
-    input_fs.close();
+    read_file_to_set(data.elements, data.file_name);
 
     {
         std::lock_guard<std::mutex> lock(fq_mtx);
