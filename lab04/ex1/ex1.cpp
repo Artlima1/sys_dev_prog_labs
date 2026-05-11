@@ -9,14 +9,23 @@
 #include <future>
 #include <set>
 #include <ctime>
+#include <queue>
+
+#define VERSION_A
 
 using std::string;
 
 std::mutex print_mtx;
+#ifdef  VERSION_B
+std::queue<int> finished_q;
+std::mutex fq_mtx;
+std::counting_semaphore<> fq_sem(0);
+#endif
 
 struct file_proc_task_data_t {
     std::multiset<int> * elements = nullptr;
     string file_name;
+    int index;
 };
 
 void proc_file(file_proc_task_data_t & data);
@@ -43,21 +52,47 @@ int main(int argc, char *argv[]) {
     auto * threads_data = new file_proc_task_data_t[n_threads];
     for (int i = 0; i < n_threads; i++) {
         threads_data[i].file_name = files[i];
+        threads_data[i].index = i;
         threads.emplace_back(
             [threads_data, i]
             {proc_file(std::ref(threads_data[i]));}
         );
     }
 
+    std::multiset<int> all_elements;
+
+#ifdef VERSION_A
     for (auto &thread : threads) {
         thread.join();
     }
 
-    std::multiset<int> all_elements;
     for (int i = 0; i < n_threads; i++) {
         all_elements.merge(*threads_data[i].elements);
         delete threads_data[i].elements;
     }
+#endif
+
+
+#ifdef  VERSION_B
+    int finished = 0;
+    int finished_index = 0;
+    while (finished < n_threads) {
+        fq_sem.acquire();
+        {
+            std::lock_guard<std::mutex> lock(fq_mtx);
+            finished_index = finished_q.front();
+            finished_q.pop();
+        }
+        all_elements.merge(*threads_data[finished_index].elements);
+        delete threads_data[finished_index].elements;
+        finished ++;
+    }
+
+
+    for (auto &t: threads) {
+        t.join();
+    }
+#endif
 
     write_set_to_file(&all_elements, output_file);
 
@@ -74,4 +109,12 @@ int main(int argc, char *argv[]) {
 void proc_file(file_proc_task_data_t & data) {
     data.elements = new std::multiset<int>;
     read_file_to_set(data.elements, data.file_name);
+
+    #ifdef  VERSION_B
+    {
+        std::lock_guard<std::mutex> lock(fq_mtx);
+        finished_q.push(data.index);
+        fq_sem.release();
+    }
+    #endif
 }
