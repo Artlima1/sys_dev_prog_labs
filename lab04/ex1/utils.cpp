@@ -27,6 +27,9 @@ void write_set_to_file(std::multiset<int> * data, const string &file_name) {
     std::ofstream output_fs(file_path,  std::ios::out|std::ios::binary);
     if (!output_fs.is_open()) return;
 
+    int n_elements = static_cast<int>(data->size());
+    output_fs.write(reinterpret_cast<const char*>(&n_elements), sizeof(int));
+
     for (auto e: *data) {
         output_fs.write(reinterpret_cast<const char*>(&e), sizeof(int));
     }

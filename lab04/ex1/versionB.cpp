@@ -2,18 +2,14 @@
 
 
 #include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <thread>
-#include <fstream>
 #include <future>
-#include <list>
-#include <map>
 #include <set>
 #include <queue>
+#include <ctime>
 
 using std::string;
 
@@ -34,6 +30,7 @@ extern void read_file_to_set(std::multiset<int> * out, const string &file_name);
 extern void write_set_to_file(std::multiset<int> * data, const string &file_name);
 
 int main(int argc, char *argv[]) {
+    clock_t start = clock();
     std::vector<string> files;
 
     std::string buff;
@@ -41,6 +38,9 @@ int main(int argc, char *argv[]) {
     std::stringstream ss_line(buff);
     while (getline(ss_line, buff, ' '))
         files.push_back(buff);
+
+    string output_file = files.back();
+    files.pop_back();
 
     const int n_threads = files.size();
 
@@ -70,13 +70,17 @@ int main(int argc, char *argv[]) {
         finished ++;
     }
 
-    write_set_to_file(&all_elements, "out.bin");
+    write_set_to_file(&all_elements, output_file);
 
     for (auto &t: threads) {
         t.join();
     }
 
     delete[] threads_data;
+
+    clock_t end = clock();
+    double duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Execution Time: " << duration << " seconds" << std::endl;
 
     return EXIT_SUCCESS;
 }
