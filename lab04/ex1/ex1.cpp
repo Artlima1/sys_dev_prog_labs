@@ -1,17 +1,17 @@
 
 
-
 #include <iostream>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <thread>
-#include <future>
-#include <set>
-#include <ctime>
+#include <algorithm>
+#include <mutex>
+#include <semaphore>
+#include <chrono>
 #include <queue>
 
-#define VERSION_A
+#define VERSION_B
 
 using std::string;
 
@@ -23,17 +23,18 @@ std::counting_semaphore<> fq_sem(0);
 #endif
 
 struct file_proc_task_data_t {
-    std::multiset<int> * elements = nullptr;
+    int* elements = nullptr;
+    int size = 0;
     string file_name;
     int index;
 };
 
 void proc_file(file_proc_task_data_t & data);
-extern void read_file_to_set(std::multiset<int> * out, const string &file_name);
-extern void write_set_to_file(std::multiset<int> * data, const string &file_name);
+extern void read_file_to_arr(int** out, int* n_out, const string &file_name);
+extern void write_arr_to_file(const int* data, int size, const string &file_name);
 
 int main(int argc, char *argv[]) {
-    clock_t start = clock();
+    auto start = std::chrono::high_resolution_clock::now();
 
     std::vector<string> files;
 
@@ -45,7 +46,6 @@ int main(int argc, char *argv[]) {
 
     string output_file = files.back();
     files.pop_back();
-
 
     int n_threads = files.size();
     std::vector<std::thread> threads;
@@ -59,47 +59,53 @@ int main(int argc, char *argv[]) {
         );
     }
 
-    std::multiset<int> all_elements;
+    std::vector<int> all_elements;
 
 #ifdef VERSION_A
-    for (auto &thread : threads) {
+    for (auto &thread : threads)
         thread.join();
-    }
 
     for (int i = 0; i < n_threads; i++) {
-        all_elements.merge(*threads_data[i].elements);
-        delete threads_data[i].elements;
+        std::vector<int> merged(all_elements.size() + threads_data[i].size);
+        std::merge(all_elements.begin(), all_elements.end(),
+                   threads_data[i].elements, threads_data[i].elements + threads_data[i].size,
+                   merged.begin());
+        all_elements = std::move(merged);
+        delete[] threads_data[i].elements;
     }
 #endif
 
 
 #ifdef  VERSION_B
     int finished = 0;
-    int finished_index = 0;
     while (finished < n_threads) {
         fq_sem.acquire();
+        int idx;
         {
             std::lock_guard<std::mutex> lock(fq_mtx);
-            finished_index = finished_q.front();
+            idx = finished_q.front();
             finished_q.pop();
         }
-        all_elements.merge(*threads_data[finished_index].elements);
-        delete threads_data[finished_index].elements;
-        finished ++;
+        std::vector<int> merged(all_elements.size() + threads_data[idx].size);
+        std::merge(all_elements.begin(), all_elements.end(),
+                   threads_data[idx].elements, threads_data[idx].elements + threads_data[idx].size,
+                   merged.begin());
+        all_elements = std::move(merged);
+        delete[] threads_data[idx].elements;
+        threads_data[idx].elements = nullptr;
+        finished++;
     }
 
-
-    for (auto &t: threads) {
+    for (auto &t: threads)
         t.join();
-    }
 #endif
 
-    write_set_to_file(&all_elements, output_file);
+    write_arr_to_file(all_elements.data(), static_cast<int>(all_elements.size()), output_file);
 
     delete[] threads_data;
 
-    clock_t end = clock();
-    double duration = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    auto finish = std::chrono::high_resolution_clock::now();
+    double duration = std::chrono::duration<double>(finish - start).count();
     std::cout << "Execution Time: " << duration << " seconds" << std::endl;
 
     return EXIT_SUCCESS;
@@ -107,8 +113,8 @@ int main(int argc, char *argv[]) {
 
 
 void proc_file(file_proc_task_data_t & data) {
-    data.elements = new std::multiset<int>;
-    read_file_to_set(data.elements, data.file_name);
+    read_file_to_arr(&data.elements, &data.size, data.file_name);
+    std::sort(data.elements, data.elements + data.size);
 
     #ifdef  VERSION_B
     {
