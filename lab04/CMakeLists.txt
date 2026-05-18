@@ -6,3 +6,5 @@ set(CMAKE_CXX_FLAGS
 
 add_executable(Ex1 ex1/ex1.cpp
         ex1/utils.cpp)
+add_executable(Ex2 ex2/ex2.cpp
+        ex2/utils.cpp)
